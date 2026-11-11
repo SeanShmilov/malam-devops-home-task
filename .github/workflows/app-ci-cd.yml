@@ -1,0 +1,208 @@
+name: DemoApp CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "helm/**"
+      - ".github/workflows/app-ci-cd.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "helm/**"
+      - ".github/workflows/app-ci-cd.yml"
+
+permissions:
+  contents: read
+  id-token: write # Required for keyless AWS OIDC authentication
+
+env:
+  AWS_REGION: us-east-1
+  CLUSTER_NAME: demoapp-cluster
+  IMAGE_NAME: demoapp
+
+jobs:
+  # ==========================================
+  # Stage 1: Automated Unit Testing
+  # ==========================================
+  test:
+    name: Unit Tests (Jasmine)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Execute Tests
+        run: npm test
+
+  # ==========================================
+  # Stage 2: Docker Build & Artifact Export
+  # ==========================================
+  build-validate:
+    name: Build & Validate Container
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # PRs build and load the image for security scanning, but never push to ECR
+      - name: Build Docker Image (Dry Run)
+        uses: docker/build-push-action@v6
+        with:
+          context: app
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:ci
+
+      - name: Export Image Tar for Vulnerability Scan
+        run: docker save ${{ env.IMAGE_NAME }}:ci -o /tmp/${{ env.IMAGE_NAME }}.tar
+
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-tar
+          path: /tmp/${{ env.IMAGE_NAME }}.tar
+          retention-days: 1
+
+  # ==========================================
+  # Stage 3: Security & Vulnerability Scan (Trivy)
+  # ==========================================
+  trivy-scan:
+    name: Security Vulnerability Scan (Trivy)
+    needs: build-validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Built Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-tar
+          path: /tmp
+
+      - name: Load Container Image
+        run: docker load -i /tmp/${{ env.IMAGE_NAME }}.tar
+
+      - name: Scan Image with Aqua Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:ci
+          format: "table"
+          exit-code: "1" # Fail pipeline if Critical or High vulnerabilities are found
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+
+  # ==========================================
+  # Stage 4: Push to Amazon ECR (Production / Main Only)
+  # ==========================================
+  push-to-ecr:
+    name: Build & Push to Amazon ECR
+    needs: [test, build-validate, trivy-scan]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    outputs:
+      image_tag: ${{ steps.version.outputs.tag }}
+      ecr_registry: ${{ steps.ecr-login.outputs.registry }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Compute Immutable Image Tag
+        id: version
+        run: |
+          VERSION="1.0.0"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG="${VERSION}-${SHORT_SHA}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Generated tag: ${TAG}"
+
+      # Keyless OIDC authentication to AWS
+      - name: Configure AWS Credentials (OIDC)
+        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Image to ECR
+        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        uses: docker/build-push-action@v6
+        with:
+          context: app
+          push: true
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:latest
+
+  # ==========================================
+  # Stage 5: Deploy to Kubernetes Cluster via Helm
+  # ==========================================
+  deploy-to-eks:
+    name: Helm Deploy to Amazon EKS
+    needs: push-to-ecr
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN != ''
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.15.0"
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy Helm Chart
+        run: |
+          helm upgrade --install demoapp ./helm/demoapp \
+            --namespace default \
+            --create-namespace \
+            --set image.repository=${{ needs.push-to-ecr.outputs.ecr_registry }}/${{ env.IMAGE_NAME }} \
+            --set image.tag=${{ needs.push-to-ecr.outputs.image_tag }} \
+            --wait \
+            --timeout 5m
+
