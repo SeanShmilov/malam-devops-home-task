@@ -1,0 +1,14 @@
+apiVersion: v2
+name: demoapp
+description: Production-grade Helm chart for demoapp (Node.js Prime Calculator)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - nodejs
+  - demoapp
+  - devops-hometask
+maintainers:
+  - name: DevOps Team
+    email: devops@demoapp.com
+
