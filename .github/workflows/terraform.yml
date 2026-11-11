@@ -2,19 +2,19 @@ name: Terraform CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "terraform/**"
       - ".github/workflows/terraform.yml"
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "terraform/**"
       - ".github/workflows/terraform.yml"
 
 permissions:
-  id-token: write   # Required for AWS OIDC authentication
-  contents: read    # Required to checkout the repository
+  id-token: write      # Required for AWS OIDC authentication
+  contents: read       # Required to checkout the repository
   pull-requests: write # Required to comment PR with plan results
 
 jobs:
@@ -50,7 +50,7 @@ jobs:
         with:
           framework: terraform
           directory: terraform
-          soft_fail: true # Set to false to strictly block merges violating organizational guardrails
+          soft_fail: true
           output_format: cli
 
   plan-and-apply:
@@ -60,6 +60,8 @@ jobs:
     defaults:
       run:
         working-directory: terraform
+    env:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
     steps:
       - name: Checkout Code
@@ -72,21 +74,20 @@ jobs:
 
       # Keyless authentication via AWS OIDC (Part 1 & Part 4)
       - name: Configure AWS Credentials (OIDC)
-        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        if: env.AWS_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Terraform Init
-        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        if: env.AWS_ROLE_ARN != ''
         run: terraform init
 
       - name: Terraform Plan
-        if: "${{ github.event_name == 'pull_request' && secrets.AWS_ROLE_ARN != '' }}"
+        if: github.event_name == 'pull_request' && env.AWS_ROLE_ARN != ''
         run: terraform plan -no-color
 
       - name: Terraform Apply
-        if: "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN != '' }}"
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.AWS_ROLE_ARN != ''
         run: terraform apply -auto-approve
-

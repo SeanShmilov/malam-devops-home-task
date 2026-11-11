@@ -2,13 +2,13 @@ name: DemoApp CI/CD Pipeline
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "app/**"
       - "helm/**"
       - ".github/workflows/app-ci-cd.yml"
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "app/**"
       - "helm/**"
@@ -22,6 +22,7 @@ env:
   AWS_REGION: us-east-1
   CLUSTER_NAME: demoapp-cluster
   IMAGE_NAME: demoapp
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
 
 jobs:
   # ==========================================
@@ -69,7 +70,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # PRs build and load the image for security scanning, but never push to ECR
       - name: Build Docker Image (Dry Run)
         uses: docker/build-push-action@v6
         with:
@@ -111,7 +111,7 @@ jobs:
         with:
           image-ref: ${{ env.IMAGE_NAME }}:ci
           format: "table"
-          exit-code: "1" # Fail pipeline if Critical or High vulnerabilities are found
+          exit-code: "1"
           ignore-unfixed: true
           severity: "CRITICAL,HIGH"
 
@@ -143,23 +143,23 @@ jobs:
 
       # Keyless OIDC authentication to AWS
       - name: Configure AWS Credentials (OIDC)
-        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        if: env.AWS_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to Amazon ECR
-        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        if: env.AWS_ROLE_ARN != ''
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set up Docker Buildx
-        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        if: env.AWS_ROLE_ARN != ''
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Push Docker Image to ECR
-        if: "${{ secrets.AWS_ROLE_ARN != '' }}"
+        if: env.AWS_ROLE_ARN != ''
         uses: docker/build-push-action@v6
         with:
           context: app
@@ -175,28 +175,33 @@ jobs:
     name: Helm Deploy to Amazon EKS
     needs: push-to-ecr
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout Code
+        if: env.AWS_ROLE_ARN != ''
         uses: actions/checkout@v4
 
       - name: Set up Helm
+        if: env.AWS_ROLE_ARN != ''
         uses: azure/setup-helm@v4
         with:
           version: "v3.15.0"
 
       - name: Configure AWS Credentials (OIDC)
+        if: env.AWS_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Update Kubeconfig
+        if: env.AWS_ROLE_ARN != ''
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
 
       - name: Deploy Helm Chart
+        if: env.AWS_ROLE_ARN != ''
         run: |
           helm upgrade --install demoapp ./helm/demoapp \
             --namespace default \
@@ -205,4 +210,3 @@ jobs:
             --set image.tag=${{ needs.push-to-ecr.outputs.image_tag }} \
             --wait \
             --timeout 5m
-
