@@ -88,7 +88,7 @@ curl -kv https://demoapp.com/isPrime/11
   2. **Placement Diagram & Flow:** Mermaid diagram illustrating external client ingress via Central Network WAF/ALB, Transit Gateway (TGW) routing, and private pod delivery.
   3. **Network Architecture:** Comparative matrix of standalone VPC vs. Landing Zone Workload VPC (private-only subnets, centralized egress, and local VPC Endpoints).
   4. **Guardrails & Policy-as-Code:** Organization SCPs with mandatory tags (`environment`, `owner`, `cost_center`) enforced via AWS provider `default_tags` and Checkov automated scanning.
-  5. **FinOps & Cost Optimization:** Monthly AWS cost breakdown table (~$183.18/mo) and actionable optimization levers (Spot instances, scheduled scaling, single-AZ dev environments) saving up to 70% in non-production.
+  5. **FinOps & Cost Optimization:** Monthly AWS cost breakdown table (~$163.02/mo) and actionable optimization levers (Spot instances, scheduled scaling, single-AZ dev environments) saving up to 70% in non-production.
   6. **Cross-Account CI/CD Security (Bonus Code):** Keyless cross-account deployment design via STS `AssumeRole` and least-privilege scoping, implemented in [`terraform/cross-account-role.tf`](terraform/cross-account-role.tf).
 
 ---
