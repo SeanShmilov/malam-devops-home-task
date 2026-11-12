@@ -53,6 +53,26 @@ module "eks" {
     eks-pod-identity-agent = {}
   }
 
-  enable_cluster_creator_admin_permissions = true
+  enable_cluster_creator_admin_permissions = false
   enable_irsa                              = true
+
+  kms_key_administrators = [
+    "arn:aws:iam::765858872029:root",
+    "arn:aws:iam::765858872029:user/sean-test-2026",
+    aws_iam_role.github_actions.arn
+  ]
+
+  access_entries = {
+    sean_admin = {
+      principal_arn = "arn:aws:iam::765858872029:user/sean-test-2026"
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
 }
