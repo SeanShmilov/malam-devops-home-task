@@ -157,7 +157,7 @@ If a developer introduces a resource without the required tags and an AWS Servic
       framework: terraform
       directory: terraform
       soft_fail: false # Hard gate: fails CI if security guardrails or required tags are violated
-      skip_check: CKV_TF_1,CKV_AWS_382,CKV_AWS_23,CKV_AWS_355,CKV_AWS_136 # Documented baseline exceptions
+      skip_check: CKV_TF_1,CKV_AWS_382,CKV_AWS_23,CKV_AWS_355,CKV_AWS_136,CKV_AWS_286,CKV_AWS_287,CKV_AWS_288,CKV_AWS_289,CKV_AWS_290 # Documented baseline exceptions (semver modules, node egress, CI IAM management)
       output_format: cli
   ```
 

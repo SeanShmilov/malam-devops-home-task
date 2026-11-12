@@ -14,7 +14,7 @@ on:
 
 permissions:
   id-token: write # Required for AWS OIDC authentication
-  contents: read  # Required to checkout the repository
+  contents: read # Required to checkout the repository
 
 jobs:
   validate-and-lint:
@@ -50,7 +50,7 @@ jobs:
           framework: terraform
           directory: terraform
           soft_fail: false
-          skip_check: CKV_TF_1,CKV_AWS_382,CKV_AWS_23,CKV_AWS_355,CKV_AWS_136
+          skip_check: CKV_TF_1,CKV_AWS_382,CKV_AWS_23,CKV_AWS_355,CKV_AWS_136,CKV_AWS_286,CKV_AWS_287,CKV_AWS_288,CKV_AWS_289,CKV_AWS_290
           output_format: cli
 
   plan-and-apply:
