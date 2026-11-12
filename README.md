@@ -85,7 +85,7 @@ curl -kv https://demoapp.com/isPrime/11
 ### Part 4: AWS Landing Zone Architecture & Multi-Account Deployment
 * Full technical architectural design, diagrams, and operational teardowns delivered in [`LANDING-ZONE.md`](LANDING-ZONE.md):
   1. **Landing Zone Research:** Multi-account organization strategy, blast-radius isolation, and account taxonomy (Management, Security/Audit, Log Archive, Core Network, Shared Services, Workload).
-  2. **Placement Diagram & Flow:** Mermaid diagram illustrating external client ingress via Central Network WAF/ALB, Transit Gateway (TGW) routing, and private pod delivery.
+  2. **Placement Diagram & Flow:** Clean architecture diagram illustrating external client ingress via Central Network WAF/ALB, Transit Gateway (TGW) routing, and private pod delivery.
   3. **Network Architecture:** Comparative matrix of standalone VPC vs. Landing Zone Workload VPC (private-only subnets, centralized egress, and local VPC Endpoints).
   4. **Guardrails & Policy-as-Code:** Organization SCPs with mandatory tags (`environment`, `owner`, `cost_center`) enforced via AWS provider `default_tags` and Checkov automated scanning.
   5. **FinOps & Cost Optimization:** Monthly AWS cost breakdown table (~$163.02/mo) and actionable optimization levers (Spot instances, scheduled scaling, single-AZ dev environments) saving up to 70% in non-production.

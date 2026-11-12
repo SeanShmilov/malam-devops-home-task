@@ -13,55 +13,43 @@
 ## 2. Ingress & Request Flow
 - **Flow:** User opens https://demoapp.com → Network ALB terminates TLS → forwards over Transit Gateway directly to private EKS pod IPs.
 
-```mermaid
-flowchart TD
-    subgraph Client ["External Client"]
-        Browser["User Browser"]
-    end
-
-    subgraph Internet ["Public Internet"]
-        DNS["Route 53 Public DNS\n(demoapp.com)"]
-    end
-
-    subgraph CentralNetworkAccount ["Central Network Account"]
-        WAF["AWS WAF & CloudFront"]
-        PublicALB["Central Ingress ALB\n(ACM TLS: *.demoapp.com)"]
-        TGW["AWS Transit Gateway (TGW)\nRoute Tables & Attachments"]
-        CentralNAT["Central Egress NAT GW / Firewall"]
-    end
-
-    subgraph WorkloadAccount ["Workload Account (demoapp)"]
-        WorkloadVPC["Workload VPC (Private Only)\nNo IGW / No Local NAT"]
-        VPCE["VPC Endpoints\n(ECR API, ECR DKR, S3 Gateway)"]
-
-        subgraph EKSCluster ["EKS Cluster (demoapp-cluster)"]
-            Node1["Worker Node 1\n(t3.small - Private)"]
-            Node2["Worker Node 2\n(t3.small - Private)"]
-            Pod1["Pod: demoapp\n(:3000)"]
-            Pod2["Pod: demoapp\n(:3000)"]
-            Svc["ClusterIP Service\n(:80 -> :3000)"]
-        end
-    end
-
-    subgraph SharedServicesAccount ["Shared Services Account"]
-        CIRunner["CI/CD Runner (GitHub Actions)"]
-        ECRRegistry["Shared ECR Container Registry"]
-    end
-
-    Browser -->|1. Resolve DNS| DNS
-    Browser -->|2. HTTPS :443| WAF
-    WAF --> PublicALB
-    PublicALB -->|3. Route over TGW (target-type: ip)| TGW
-    TGW -->|4. Private IP Packet| Pod1
-    TGW -->|4. Private IP Packet| Pod2
-    Node1 --- Pod1
-    Node2 --- Pod2
-    Pod1 --- Svc
-    Pod2 --- Svc
-    WorkloadVPC -->|Local Traffic| VPCE
-    WorkloadVPC -->|Outbound Egress| TGW
-    TGW --> CentralNAT
-    CIRunner -.->|sts:AssumeRole| WorkloadAccount
+```text
+[ User Browser ]
+       │
+       ▼ (1. HTTPS :443 - demoapp.com)
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Central Network Account                                  │
+│   [ Route 53 Public DNS ] ──► [ AWS WAF & CloudFront ]      │
+│                                           │                 │
+│                                           ▼                 │
+│                                 [ Central Ingress ALB ]     │
+│                                   (ACM TLS: demoapp.com)    │
+│                                           │                 │
+│                                           ▼                 │
+│                              [ AWS Transit Gateway (TGW) ]  │
+└───────────────────────────────────────────┬─────────────────┘
+                                            │
+                                            ▼ (2. Route over TGW - target-type: ip)
+┌───────────────────────────────────────────┴─────────────────┐
+│ 2. Workload Account (demoapp - Private Only)                │
+│                                                             │
+│   [ Workload VPC - No Internet Gateway / No Local NAT ]     │
+│                                                             │
+│   [ VPC Endpoints ] ◄── (PrivateLink) ──► [ ECR & S3 ]      │
+│                                                             │
+│   [ Amazon EKS Cluster: demoapp-cluster ]                   │
+│      ├── Worker Node 1 (Private) ──► [ Pod: demoapp :3000 ] │
+│      └── Worker Node 2 (Private) ──► [ Pod: demoapp :3000 ] │
+│                                                ▲            │
+│                                                │            │
+│                                    [ ClusterIP Service :80 ]│
+└─────────────────────────────────────────────────────────────┘
+                               ▲
+                               │ (3. Keyless OIDC sts:AssumeRole)
+┌──────────────────────────────┴──────────────────────────────┐
+│ 3. Shared Services Account                                  │
+│   [ GitHub Actions CI Runner ] ──► [ Shared ECR Registry ]  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## 3. Network Changes (Standalone vs. Landing Zone)
