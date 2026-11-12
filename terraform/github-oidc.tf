@@ -71,6 +71,12 @@ resource "aws_iam_role_policy_attachment" "github_actions_eks" {
   policy_arn = aws_iam_policy.github_actions_eks.arn
 }
 
+# Grant full infrastructure management access for Terraform IaC deployment pipeline
+resource "aws_iam_role_policy_attachment" "github_actions_admin" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
 # Policy allowing GitHub Actions to manage remote Terraform state in S3 & DynamoDB
 resource "aws_iam_policy" "github_actions_tfstate" {
   name        = "${var.cluster_name}-github-actions-tfstate-policy"
