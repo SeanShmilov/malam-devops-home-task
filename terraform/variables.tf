@@ -70,3 +70,9 @@ variable "github_repo_filter" {
   default     = "repo:SeanShmilov/malam-devops-home-task:*"
 }
 
+variable "cluster_admin_principal_arn" {
+  description = "Optional IAM user or role ARN to grant EKS cluster administrator permissions (configured locally via terraform.tfvars)"
+  type        = string
+  default     = ""
+}
+

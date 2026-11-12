@@ -105,7 +105,7 @@ resource "aws_iam_policy" "github_actions_tfstate" {
           "dynamodb:PutItem",
           "dynamodb:DeleteItem"
         ]
-        Resource = "arn:aws:dynamodb:us-east-1:765858872029:table/malam-devops-tflocks"
+        Resource = "arn:aws:dynamodb:${var.region}:${data.aws_caller_identity.current.account_id}:table/malam-devops-tflocks"
       }
     ]
   })
