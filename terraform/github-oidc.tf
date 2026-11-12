@@ -172,7 +172,8 @@ resource "aws_iam_policy" "github_actions_iac" {
         Effect = "Allow"
         Action = [
           "acm:*",
-          "route53:*"
+          "route53:*",
+          "elasticloadbalancing:*"
         ]
         Resource = "*"
       },
