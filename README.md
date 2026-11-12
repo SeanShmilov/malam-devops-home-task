@@ -1,6 +1,6 @@
 # DevOps Home Task: EKS, GitOps, CI/CD & Kubernetes Deployment
 
-This repository contains the complete implementation for the DevOps Home Exercise (Parts 1 to 3), encompassing Infrastructure as Code (Terraform), Containerization, Helm packaging, and GitHub Actions CI/CD pipelines.
+This repository contains the complete implementation for the DevOps Home Exercise (Parts 1 to 4), encompassing Infrastructure as Code (Terraform), Containerization, Helm packaging, GitHub Actions CI/CD pipelines, and enterprise AWS Landing Zone architecture.
 
 ---
 
@@ -32,9 +32,11 @@ This repository contains the complete implementation for the DevOps Home Exercis
 │   ├── alb-controller-policy.json
 │   ├── github-oidc.tf          # Keyless GitHub Actions OIDC Provider & IAM Role
 │   ├── acm.tf                  # Route 53 zone & ACM TLS certificate (demoapp.com)
+│   ├── cross-account-role.tf   # Part 4 (Bonus): Cross-account IAM role for Shared Services CI
 │   └── outputs.tf              # Infrastructure endpoints and ARNs
 ├── docs/
 │   └── GIT_STRATEGY.md         # Part 2: Git branching strategy and repository policies
+├── LANDING-ZONE.md             # Part 4: Enterprise AWS Landing Zone architecture & FinOps
 └── INSTRUCTIONS.md             # Original exercise instructions and prompt guidelines
 ```
 
@@ -79,6 +81,15 @@ curl -kv https://demoapp.com/isPrime/11
   3. **Security Vulnerability Scan:** Aqua Trivy scans the container image, failing the build on unfixed `CRITICAL` or `HIGH` vulnerabilities.
   4. **ECR Push (Main only):** Authenticates via OIDC and pushes immutable tagged images (`1.0.0-<git-sha>`).
   5. **EKS Deploy (Main only):** Deploys the application to the cluster using Helm with zero downtime.
+
+### Part 4: AWS Landing Zone Architecture & Multi-Account Deployment
+* Full technical architectural design, diagrams, and operational teardowns delivered in [`LANDING-ZONE.md`](LANDING-ZONE.md):
+  1. **Landing Zone Research:** Multi-account organization strategy, blast-radius isolation, and account taxonomy (Management, Security/Audit, Log Archive, Core Network, Shared Services, Workload).
+  2. **Placement Diagram & Flow:** Mermaid diagram illustrating external client ingress via Central Network WAF/ALB, Transit Gateway (TGW) routing, and private pod delivery.
+  3. **Network Architecture:** Comparative matrix of standalone VPC vs. Landing Zone Workload VPC (private-only subnets, centralized egress, and local VPC Endpoints).
+  4. **Guardrails & Policy-as-Code:** Organization SCPs with mandatory tags (`environment`, `owner`, `cost_center`) enforced via AWS provider `default_tags` and Checkov automated scanning.
+  5. **FinOps & Cost Optimization:** Monthly AWS cost breakdown table (~$183.18/mo) and actionable optimization levers (Spot instances, scheduled scaling, single-AZ dev environments) saving up to 70% in non-production.
+  6. **Cross-Account CI/CD Security (Bonus Code):** Keyless cross-account deployment design via STS `AssumeRole` and least-privilege scoping, implemented in [`terraform/cross-account-role.tf`](terraform/cross-account-role.tf).
 
 ---
 
