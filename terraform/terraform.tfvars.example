@@ -1,4 +1,0 @@
-# Example local variables - Copy to terraform.tfvars and customize
-# terraform.tfvars is ignored by Git to prevent exposing personal ARNs
-
-# cluster_admin_principal_arn = "arn:aws:iam::123456789012:user/your-iam-user"

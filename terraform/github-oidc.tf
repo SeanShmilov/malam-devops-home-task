@@ -94,8 +94,8 @@ resource "aws_iam_policy" "github_actions_tfstate" {
           "s3:DeleteObject"
         ]
         Resource = [
-          "arn:aws:s3:::malam-devops-tfstate-765858872029",
-          "arn:aws:s3:::malam-devops-tfstate-765858872029/*"
+          "arn:aws:s3:::malam-devops-tfstate-${data.aws_caller_identity.current.account_id}",
+          "arn:aws:s3:::malam-devops-tfstate-${data.aws_caller_identity.current.account_id}/*"
         ]
       },
       {
