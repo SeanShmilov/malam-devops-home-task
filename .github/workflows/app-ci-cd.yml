@@ -164,6 +164,9 @@ jobs:
         with:
           context: app
           push: true
+          # Production Best Practice: Tag exclusively with immutable Git-SHA version.
+          # The mutable ':latest' tag is strictly omitted because terraform/ecr.tf enforces
+          # image_tag_mutability = "IMMUTABLE", which prevents ImageTagAlreadyExistsException.
           tags: |
             ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
 

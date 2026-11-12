@@ -71,10 +71,125 @@ resource "aws_iam_role_policy_attachment" "github_actions_eks" {
   policy_arn = aws_iam_policy.github_actions_eks.arn
 }
 
-# Grant full infrastructure management access for Terraform IaC deployment pipeline
-resource "aws_iam_role_policy_attachment" "github_actions_admin" {
+# Scoped IAM Policy for Terraform IaC CI/CD runner (Principle of Least Privilege - eliminates CKV_AWS_274)
+resource "aws_iam_policy" "github_actions_iac" {
+  name        = "${var.cluster_name}-github-actions-iac-policy"
+  description = "Scoped permissions for Terraform IaC deployment pipeline (EKS, VPC, IAM, KMS, ACM, Route53, Logs)"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "EC2AndVPCManagement"
+        Effect = "Allow"
+        Action = [
+          "ec2:*"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "EKSClusterManagement"
+        Effect = "Allow"
+        Action = [
+          "eks:*"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "IAMRoleAndPolicyManagement"
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:GetRole",
+          "iam:ListRoles",
+          "iam:PassRole",
+          "iam:TagRole",
+          "iam:UntagRole",
+          "iam:UpdateRole",
+          "iam:UpdateRoleDescription",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:CreatePolicy",
+          "iam:DeletePolicy",
+          "iam:GetPolicy",
+          "iam:GetPolicyVersion",
+          "iam:ListPolicyVersions",
+          "iam:ListPolicies",
+          "iam:CreatePolicyVersion",
+          "iam:DeletePolicyVersion",
+          "iam:TagPolicy",
+          "iam:UntagPolicy",
+          "iam:CreateInstanceProfile",
+          "iam:DeleteInstanceProfile",
+          "iam:GetInstanceProfile",
+          "iam:AddRoleToInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile",
+          "iam:ListInstanceProfiles",
+          "iam:TagInstanceProfile",
+          "iam:GetOpenIDConnectProvider",
+          "iam:CreateOpenIDConnectProvider",
+          "iam:DeleteOpenIDConnectProvider",
+          "iam:TagOpenIDConnectProvider",
+          "iam:UntagOpenIDConnectProvider",
+          "iam:ListOpenIDConnectProviders",
+          "iam:ListOpenIDConnectProviderTags"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "KMSKeyManagement"
+        Effect = "Allow"
+        Action = [
+          "kms:CreateKey",
+          "kms:DescribeKey",
+          "kms:GetKeyPolicy",
+          "kms:GetKeyRotationStatus",
+          "kms:ListResourceTags",
+          "kms:ScheduleKeyDeletion",
+          "kms:CancelKeyDeletion",
+          "kms:PutKeyPolicy",
+          "kms:EnableKeyRotation",
+          "kms:TagResource",
+          "kms:UntagResource",
+          "kms:CreateAlias",
+          "kms:DeleteAlias",
+          "kms:DescribeCustomKeyStores",
+          "kms:ListAliases"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "ACMAndRoute53Management"
+        Effect = "Allow"
+        Action = [
+          "acm:*",
+          "route53:*"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "LogsAndSSMResolution"
+        Effect = "Allow"
+        Action = [
+          "logs:*",
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_iac" {
   role       = aws_iam_role.github_actions.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+  policy_arn = aws_iam_policy.github_actions_iac.arn
 }
 
 # Policy allowing GitHub Actions to manage remote Terraform state in S3 & DynamoDB
