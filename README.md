@@ -79,7 +79,7 @@ curl -kv https://demoapp.com/isPrime/11
   1. **Unit Tests:** Executes Jasmine test suite (`npm test`).
   2. **Docker Build:** Validates container build via Docker Buildx.
   3. **Security Vulnerability Scan:** Aqua Trivy scans the container image, failing the build on unfixed `CRITICAL` or `HIGH` vulnerabilities.
-  4. **ECR Push (Main only):** Authenticates via OIDC and pushes immutable tagged images (`1.0.0-<git-sha>`).
+  4. **ECR Push (Main only):** Authenticates via OIDC and pushes immutable tagged images (`1.0.0-<git-sha>`). The mutable `:latest` tag is intentionally omitted to avoid overwrite collisions with ECR tag immutability (`image_tag_mutability = "IMMUTABLE"`).
   5. **EKS Deploy (Main only):** Deploys the application to the cluster using Helm with zero downtime.
 
 ### Part 4: AWS Landing Zone Architecture & Multi-Account Deployment
