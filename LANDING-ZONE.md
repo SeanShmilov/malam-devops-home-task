@@ -12,6 +12,7 @@
 
 ## 2. Ingress & Request Flow
 - **Flow:** User opens https://demoapp.com → Network ALB terminates TLS → forwards over Transit Gateway directly to private EKS pod IPs.
+- **Design Assumptions:** Shared ALB in Network Account terminates ACM TLS; target-type `ip` routes traffic across TGW directly to private EKS pods (AWS VPC CNI); Workload VPC is strictly private (no IGW/NAT).
 
 ```text
 [ User Browser ]
@@ -65,7 +66,7 @@
 ## 4. Guardrails & Policy as Code
 - **Mandatory Tags:** `environment`, `owner`, and `cost_center` set on all resources via `default_tags` in `terraform/providers.tf`.
 - **SCP Rejection:** Missing tags trigger an `AccessDenied` from SCPs during `terraform apply`, breaking provisioning mid-run.
-- **Policy as Code:** Checkov runs in CI as a hard gate (`soft_fail: false`) with documented baseline skips in `.github/workflows/terraform.yml`.
+- **Policy as Code:** Checkov chosen over TFLint/OPA for out-of-the-box AWS CIS benchmarks without custom Rego; runs in CI pre-merge (`validate-and-lint`) as a hard gate (`soft_fail: false`) in `.github/workflows/terraform.yml`.
 
 ## 5. FinOps & Cost Optimization
 | Component | Specification | Monthly Cost |
@@ -86,7 +87,8 @@
 - **No Static Keys:** CI runners in Shared Services use keyless OIDC and `sts:AssumeRole` to deploy into Workload accounts.
 - **Bonus in code:** Implemented `demoapp-dev-cross-account-deployer-role` with `sts:ExternalId` in `terraform/cross-account-role.tf`.
 
-## 7. AI Reflection & References
+## 7. How I Worked (Sources, Tools & AI Reflection)
+- **Tools Used:** Terraform 1.9, AWS CLI, Checkov, GitHub Actions, Docker, Helm 3, kubectl.
 - **Sources & References:**
   - [AWS Control Tower Documentation](https://docs.aws.amazon.com/controltower/)
   - [AWS Well-Architected Framework: Security & Reliability Pillars](https://aws.amazon.com/architecture/well-architected/)
