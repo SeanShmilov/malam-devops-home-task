@@ -13,6 +13,45 @@
 ## 2. Ingress & Request Flow
 - **Flow:** User opens https://demoapp.com → Network ALB terminates TLS → forwards over Transit Gateway directly to private EKS pod IPs.
 
+```text
+[ User Browser ]
+       │
+       ▼ (1. HTTPS :443 - demoapp.com)
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Central Network Account                                  │
+│   [ Route 53 Public DNS ] ──► [ AWS WAF & CloudFront ]      │
+│                                           │                 │
+│                                           ▼                 │
+│                                 [ Central Ingress ALB ]     │
+│                                   (ACM TLS: demoapp.com)    │
+│                                           │                 │
+│                                           ▼                 │
+│                              [ AWS Transit Gateway (TGW) ]  │
+└───────────────────────────────────────────┬─────────────────┘
+                                            │
+                                            ▼ (2. Route over TGW - target-type: ip)
+┌───────────────────────────────────────────┴─────────────────┐
+│ 2. Workload Account (demoapp - Private Only)                │
+│                                                             │
+│   [ Workload VPC - No Internet Gateway / No Local NAT ]     │
+│                                                             │
+│   [ VPC Endpoints ] ◄── (PrivateLink) ──► [ ECR & S3 ]      │
+│                                                             │
+│   [ Amazon EKS Cluster: demoapp-cluster ]                   │
+│      ├── Worker Node 1 (Private) ──► [ Pod: demoapp :3000 ] │
+│      └── Worker Node 2 (Private) ──► [ Pod: demoapp :3000 ] │
+│                                                ▲            │
+│                                                │            │
+│                                    [ ClusterIP Service :80 ]│
+└─────────────────────────────────────────────────────────────┘
+                               ▲
+                               │ (3. Keyless OIDC sts:AssumeRole)
+┌──────────────────────────────┴──────────────────────────────┐
+│ 3. Shared Services Account                                  │
+│   [ GitHub Actions CI Runner ] ──► [ Shared ECR Registry ]  │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ## 3. Network Changes (Standalone vs. Landing Zone)
 | Dimension | Standalone VPC (Part 1) | Landing Zone Workload VPC |
 |---|---|---|
@@ -47,7 +86,12 @@
 - **No Static Keys:** CI runners in Shared Services use keyless OIDC and `sts:AssumeRole` to deploy into Workload accounts.
 - **Bonus in code:** Implemented `demoapp-dev-cross-account-deployer-role` with `sts:ExternalId` in `terraform/cross-account-role.tf`.
 
-## 7. AI Reflection & Verification
+## 7. AI Reflection & References
+- **Sources & References:**
+  - [AWS Control Tower Documentation](https://docs.aws.amazon.com/controltower/)
+  - [AWS Well-Architected Framework: Security & Reliability Pillars](https://aws.amazon.com/architecture/well-architected/)
+  - [AWS Whitepaper: Organizing Your AWS Environment Using Multiple Accounts](https://docs.aws.amazon.com/whitepapers/latest/organizing-your-aws-environment/organizing-your-aws-environment.html)
+  - [AWS EKS Best Practices Guide: Networking & Security](https://aws.github.io/aws-eks-best-practices/)
 - **Prompts Used:** Asked AI for cross-account EKS ingress architectures.
 - **Kept:** Transit Gateway topology and multi-account boundary separation.
 - **Fact-Checked:** AI suggested complex VPC peering; official AWS EKS docs confirmed target type `ip` routes directly over Transit Gateway.
