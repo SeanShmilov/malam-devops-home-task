@@ -53,3 +53,13 @@ output "route53_zone_id" {
   value       = aws_route53_zone.primary.zone_id
 }
 
+output "alb_dns_name" {
+  description = "DNS name of the provisioned Application Load Balancer"
+  value       = data.aws_lb.ingress.dns_name
+}
+
+output "application_url" {
+  description = "Configured application URL via Route 53"
+  value       = "https://${var.domain_name}"
+}
+

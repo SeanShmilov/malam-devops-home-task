@@ -9,6 +9,40 @@ resource "aws_route53_zone" "primary" {
   comment = "Private hosted zone for ${var.domain_name}"
 }
 
+# Auto-discover ALB created dynamically by AWS Load Balancer Controller for demoapp
+data "aws_lb" "ingress" {
+  tags = {
+    "elbv2.k8s.aws/cluster" = var.cluster_name
+    "ingress.k8s.aws/stack" = "default/demoapp"
+  }
+}
+
+# Route 53 Alias Record pointing demoapp.com to the Application Load Balancer
+resource "aws_route53_record" "demoapp" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = data.aws_lb.ingress.dns_name
+    zone_id                = data.aws_lb.ingress.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# Route 53 Wildcard Alias Record (*.demoapp.com)
+resource "aws_route53_record" "demoapp_wildcard" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = "*.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = data.aws_lb.ingress.dns_name
+    zone_id                = data.aws_lb.ingress.zone_id
+    evaluate_target_health = true
+  }
+}
+
 # Generate TLS Private Key and Self-Signed Certificate for demoapp.com
 resource "tls_private_key" "demoapp" {
   algorithm = "RSA"
