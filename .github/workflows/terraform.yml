@@ -13,9 +13,8 @@ on:
       - ".github/workflows/terraform.yml"
 
 permissions:
-  id-token: write      # Required for AWS OIDC authentication
-  contents: read       # Required to checkout the repository
-  pull-requests: write # Required to comment PR with plan results
+  id-token: write # Required for AWS OIDC authentication
+  contents: read  # Required to checkout the repository
 
 jobs:
   validate-and-lint:

@@ -67,6 +67,6 @@ variable "domain_name" {
 variable "github_repo_filter" {
   description = "GitHub repository filter for OIDC role trust policy (e.g. repo:org/repo:*)"
   type        = string
-  default     = "repo:*"
+  default     = "repo:SeanShmilov/malam-devops-home-task:*"
 }
 

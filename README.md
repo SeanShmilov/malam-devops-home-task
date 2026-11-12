@@ -57,6 +57,21 @@ This repository contains the complete implementation for the DevOps Home Exercis
 
   ![DemoApp Website Screenshot](docs/screenshot.png)
 
+#### DNS & Endpoint Verification
+Per `INSTRUCTIONS.md` (Part 2), external traffic routes to `demoapp.com` via the AWS Application Load Balancer:
+
+```bash
+# 1. Retrieve the ALB hostname provisioned by the AWS Load Balancer Controller
+ALB_DNS=$(kubectl get ingress demoapp -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+# 2. Resolve ALB IP and add mapping to /etc/hosts
+ALB_IP=$(dig +short $ALB_DNS | head -n 1)
+echo "$ALB_IP demoapp.com" | sudo tee -a /etc/hosts
+
+# 3. Verify TLS termination and routing (returns HTTP/2 200)
+curl -kv https://demoapp.com/isPrime/11
+```
+
 ### Part 3: Continuous Integration & Deployment Pipeline
 * Pipeline definition in [`.github/workflows/app-ci-cd.yml`](.github/workflows/app-ci-cd.yml) consists of 5 automated stages:
   1. **Unit Tests:** Executes Jasmine test suite (`npm test`).

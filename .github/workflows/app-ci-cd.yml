@@ -111,7 +111,7 @@ jobs:
         with:
           image-ref: ${{ env.IMAGE_NAME }}:ci
           format: "table"
-          exit-code: "0"
+          exit-code: "1"
           ignore-unfixed: true
           severity: "CRITICAL,HIGH"
 
@@ -166,7 +166,6 @@ jobs:
           push: true
           tags: |
             ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
-            ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:latest
 
   # ==========================================
   # Stage 5: Deploy to Kubernetes Cluster via Helm

@@ -1,17 +1,20 @@
 # Multi-stage production Dockerfile for nodejs-demoapp
 # Stage 1: Dependencies and Build
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /usr/src/app
 
 # Copy dependency specifications
 COPY package*.json ./
 
-# Install dependencies (including dev for test if needed)
-RUN npm ci --omit=dev
+# Install production dependencies only
+RUN npm install --omit=dev
 
-# Stage 2: Runtime image
-FROM node:18-alpine
+# Stage 2: Runtime image (Active Node LTS, minimal footprint)
+FROM node:22-alpine
+
+# Remove package managers from production runtime to eliminate attack surface & CVEs
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /opt/yarn*
 
 # Set non-root environment & node production mode
 ENV NODE_ENV=production
