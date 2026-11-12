@@ -1,6 +1,14 @@
 terraform {
   required_version = ">= 1.7"
 
+  backend "s3" {
+    bucket         = "malam-devops-tfstate-765858872029"
+    key            = "demoapp/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "malam-devops-tflocks"
+    encrypt        = true
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -34,10 +42,6 @@ provider "aws" {
       ManagedBy   = "Terraform"
     }
   }
-}
-
-data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
 }
 
 provider "helm" {

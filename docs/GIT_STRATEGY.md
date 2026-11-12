@@ -34,27 +34,18 @@ We employ a modified **Trunk-Based / GitHub Flow** model with short-lived featur
 
 ## Branch Protection Rules (Enforced on `main`)
 
-To ensure quality and compliance, the following branch protection settings are configured:
+To ensure quality and compliance, branch protection is enforced via GitHub API policies:
 
-1. **Require Pull Request Reviews:**
-   * At least 1 approving review from authorized code owners before merging.
-   * Dismiss stale reviews when new commits are pushed.
-   * Require review from Code Owners (`CODEOWNERS`).
+1. **Require Status Checks to Pass Before Merging:**
+   * `Terraform Validate & Policy-as-Code`: Format check (`terraform fmt`), syntax validation, and Checkov policy-as-code linting.
+   * `Unit Tests (Jasmine)`: Automated Jasmine test suite execution on Node.js.
 
-2. **Require Status Checks to Pass Before Merging:**
-   * `validate-and-lint` (Terraform syntax, formatting, and Checkov policy scan).
-   * `unit-test` (Node.js Jasmine unit tests).
-   * `docker-build-validate` (Dockerfile build verification).
-   * `trivy-scan` (Container vulnerability check with zero `CRITICAL` or `HIGH` vulnerabilities).
+2. **Pull Request Workflow:**
+   * Changes to `main` must arrive via Pull Requests from feature branches or `develop`.
+   * Stale approvals are automatically dismissed upon new commit pushes.
 
-3. **Require Signed Commits:**
-   * All commits must be GPG/SSH-signed to verify author authenticity.
-
-4. **Require Linear History:**
-   * Enforce **Squash and Merge** or **Rebase and Merge** to keep Git history clean, readable, and easily reversible.
-
-5. **Do Not Allow Force Pushes or Deletions:**
-   * Protects commit history from inadvertent overwrites or loss.
+3. **Protection Against Deletions & Force Pushes:**
+   * Branch deletion and force-pushing are restricted to prevent accidental history loss.
 
 ---
 

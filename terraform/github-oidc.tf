@@ -67,4 +67,62 @@ resource "aws_iam_role_policy_attachment" "github_actions_eks" {
   policy_arn = aws_iam_policy.github_actions_eks.arn
 }
 
+# Policy allowing GitHub Actions to manage remote Terraform state in S3 & DynamoDB
+resource "aws_iam_policy" "github_actions_tfstate" {
+  name        = "${var.cluster_name}-github-actions-tfstate-policy"
+  description = "Allows GitHub Actions runner to manage remote Terraform state in S3 & DynamoDB"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          "arn:aws:s3:::malam-devops-tfstate-765858872029",
+          "arn:aws:s3:::malam-devops-tfstate-765858872029/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = "arn:aws:dynamodb:us-east-1:765858872029:table/malam-devops-tflocks"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_tfstate" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = aws_iam_policy.github_actions_tfstate.arn
+}
+
+# Grant GitHub Actions IAM role Kubernetes RBAC cluster admin permissions via EKS Access Entries (EKS v20+)
+resource "aws_eks_access_entry" "github_actions" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_iam_role.github_actions.arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions_admin" {
+  cluster_name  = module.eks.cluster_name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = aws_iam_role.github_actions.arn
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.github_actions]
+}
+
 
