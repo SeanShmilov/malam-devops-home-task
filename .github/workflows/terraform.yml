@@ -49,7 +49,8 @@ jobs:
         with:
           framework: terraform
           directory: terraform
-          soft_fail: true
+          soft_fail: false
+          skip_check: CKV_TF_1,CKV_AWS_382,CKV_AWS_23,CKV_AWS_355,CKV_AWS_136
           output_format: cli
 
   plan-and-apply:

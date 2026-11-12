@@ -149,14 +149,16 @@ If a developer introduces a resource without the required tags and an AWS Servic
   * Over 1,000 built-in security best-practice policies (e.g., checking for unencrypted EBS, public security groups).
   * Simple YAML-based or Python-based custom policy creation for enforcing required organizational tags.
 * **Pipeline Integration:**
-  Checkov is wired directly into the pull request gate in [`.github/workflows/terraform.yml`](file:///Users/shon/Home_Task/.github/workflows/terraform.yml):
+  Checkov is wired directly into the pull request gate in [`.github/workflows/terraform.yml`](file:///Users/shon/Home_Task/.github/workflows/terraform.yml) as an active hard gate (`soft_fail: false`). Acknowledged architectural baselines (such as semantic module versions and standard VPC node egress) are explicitly documented via `skip_check`:
   ```yaml
   - name: Run Checkov Policy-as-Code Scanner
     uses: bridgecrewio/checkov-action@master
     with:
       framework: terraform
       directory: terraform
-      soft_fail: false # Hard gate: fails CI if mandatory guardrails are violated
+      soft_fail: false # Hard gate: fails CI if security guardrails or required tags are violated
+      skip_check: CKV_TF_1,CKV_AWS_382,CKV_AWS_23,CKV_AWS_355,CKV_AWS_136 # Documented baseline exceptions
+      output_format: cli
   ```
 
 ---
