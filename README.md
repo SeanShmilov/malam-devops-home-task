@@ -53,6 +53,9 @@ This repository contains the complete implementation for the DevOps Home Exercis
 * **Containerization:** Multi-stage `Dockerfile` with `dumb-init` process supervisor, running as a non-root user (`node`).
 * **Helm Chart:** Fully templated under `helm/demoapp` with liveness/readiness probes, resource limits/requests, HPA autoscaling, and ALB Ingress configured for `demoapp.com` with TLS termination via ACM.
 * **Git Architecture:** Detailed in [`docs/GIT_STRATEGY.md`](docs/GIT_STRATEGY.md) with Trunk-Based branching and protected `main` branch policies.
+* **Website Verification:** Application live on AWS EKS, exposed via AWS ALB with TLS termination:
+
+  ![DemoApp Website Screenshot](docs/screenshot.png)
 
 ### Part 3: Continuous Integration & Deployment Pipeline
 * Pipeline definition in [`.github/workflows/app-ci-cd.yml`](.github/workflows/app-ci-cd.yml) consists of 5 automated stages:
